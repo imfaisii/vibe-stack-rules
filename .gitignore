@@ -1,0 +1,30 @@
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editor / IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.project
+.settings/
+
+# Node (in case anyone adds tooling later)
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.pnpm-store/
+
+# Environment / secrets (shouldn't exist in this repo, but guard anyway)
+.env
+.env.*
+!.env.example
+
+# Claude Code local overrides
+CLAUDE.local.md
+.claude/
