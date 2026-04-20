@@ -29,12 +29,16 @@ vibe-stack-rules/
 ├── .gitignore
 └── template/                    ← the files you install into your project
     ├── CLAUDE.md                ← lean project-brain template
-    └── stack/
-        ├── 00-foundations.md    ← reading instructions, versions, principles, project structure
-        ├── 10-server.md         ← RSC boundary, data fetching, Suspense, Server Actions
-        ├── 20-supabase.md       ← 3 clients, middleware/proxy, auth gate, the 6 traps
-        ├── 30-client.md         ← Zustand store factory + shadcn composition
-        └── 90-discipline.md     ← redundancy rules, TS rules, LLM checklist, anti-patterns
+    ├── stack/
+    │   ├── 00-foundations.md    ← reading instructions, versions, principles, project structure
+    │   ├── 10-server.md         ← RSC boundary, data fetching, Suspense, Server Actions
+    │   ├── 20-supabase.md       ← 3 clients, middleware/proxy, auth gate, the 6 traps
+    │   ├── 30-client.md         ← Zustand store factory + shadcn composition
+    │   └── 90-discipline.md     ← redundancy rules, TS rules, LLM checklist, anti-patterns
+    └── skills/
+        └── claude-design-to-nextjs/   ← convert Claude Design bundles → Next.js + TSX + Tailwind + shadcn
+            ├── SKILL.md
+            └── references/            ← per-phase subagent prompts + stack adapter
 ```
 
 Everything inside `template/` is what lands in your project. The rest is repo metadata.
@@ -50,6 +54,8 @@ your-next-app/
 │   ├── 20-supabase.md
 │   ├── 30-client.md
 │   └── 90-discipline.md
+├── skills/
+│   └── claude-design-to-nextjs/ ← triggers when you paste a Claude Design command
 ├── app/                         ← your actual Next.js app
 ├── lib/
 └── ...
@@ -177,6 +183,45 @@ You can verify what's loaded at any time inside Claude Code with:
 - **Domain wrappers > raw shadcn trees.** Repeat the same `<Card><CardHeader>…</Card>` three times? Extract it.
 
 Full details in `template/stack/`.
+
+---
+
+## Bundled skill — Claude Design → Next.js
+
+Anthropic launched **Claude Design** on 2026-04-17. It spits out HTML + CSS + component bundles behind a URL, along with a standardized command:
+
+```
+Fetch this design file, read its readme, and implement the relevant aspects of the design.
+https://api.anthropic.com/v1/design/h/<id>?open_file=<file>
+Implement: <file>
+```
+
+The raw output isn't TSX, isn't Tailwind, and definitely isn't following any of the rules in `stack/*.md`. `template/skills/claude-design-to-nextjs/` closes that gap.
+
+**What it does:**
+
+- Triggers automatically when you paste the Claude Design command.
+- Runs a 5-phase pipeline: **Ingest → Analyze (3 subagents in parallel) → Synthesize + approval checkpoint → Generate → Verify**.
+- Converts raw HTML/CSS to Next.js App Router code with TypeScript, Tailwind tokens, and shadcn/ui primitives.
+- Extracts reusable components when a pattern repeats 3+ times in the bundle (following `stack/30-client.md`).
+- **Detects this repo's stack rules at run time.** When `stack/*.md` is present, the skill additionally enforces non-async `page.tsx`, sibling `*.skeleton.tsx` files, Suspense boundaries, `ROUTES` constants, Server Action stubs returning `ActionResult`, and `cn()` composition. In a vanilla Next.js project, it skips all of that and stays framework-clean.
+
+**What it does not do:** run `shadcn add` on your behalf (emits the command; you run it), infer business logic (stubs are marked `// TODO`), or edit existing pages (writes new files only).
+
+The skill ships inside `template/` and lands in your project via the same `degit` install as the rule files — no extra step.
+
+### Quick start
+
+1. Open [claude.ai/design](https://claude.ai/design) and describe the UI you want. Copy the "Fetch this design file..." command it hands you.
+2. Paste the command into Claude Code inside your project. The skill auto-triggers.
+3. Review the conversion plan Claude shows you (shadcn install list, files to be created, extracted components) and approve or request edits.
+4. Run the `npx shadcn@latest add ...` command the skill emits.
+5. Claude writes the files, runs `tsc` + `eslint`, and reports any follow-up.
+
+Full walkthrough with prerequisites, vanilla-vs-adapter behavior, and troubleshooting: **[USAGE.md](USAGE.md)**.
+
+---
+
 
 ---
 
