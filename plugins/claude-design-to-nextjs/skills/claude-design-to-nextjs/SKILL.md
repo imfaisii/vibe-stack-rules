@@ -38,13 +38,14 @@ else:
   adapter = "none"
 ```
 
-Announce the adapter choice to the user in one sentence before Phase 1 starts.
+Run adapter detection at the start of Phase 0 (before the preflight checks). Announce the adapter choice to the user in one sentence, then proceed with the preflight checks. If the user scaffolds a new project in Phase 0, **re-run adapter detection** after scaffolding completes — the new project won't have `stack/*.md` unless the user separately installs vibe-stack-rules.
 
 ---
 
 ## The pipeline (topology B: parallel analyze, sequential generate)
 
 ```
+0.   PROJECT PREFLIGHT  (verify this is a Next.js project; offer to scaffold if missing)
 1.   INGEST             (1 agent, sequential)
 1.5. STYLE MODE         (mandatory checkpoint — ask the user every run, no defaults)
 2.   ANALYZE            (3 subagents in parallel — Task tool with subagent_type=general-purpose)
@@ -54,6 +55,63 @@ Announce the adapter choice to the user in one sentence before Phase 1 starts.
 ```
 
 All heavy per-phase guidance lives in `references/`. Load each file on-demand per phase — do not preload.
+
+### Phase 0 — Project preflight (runs first, can end the run)
+
+Before fetching anything remote, verify the current working directory is a Next.js App Router project the skill can actually write into. Check these in order:
+
+1. **`package.json` exists** AND it lists `next` under `dependencies` or `devDependencies`. Parse the file — do not just `ls`. A repo can have a `package.json` for tooling without being a Next.js project (monorepo roots, eslint-config packages, etc.).
+2. **`tsconfig.json` exists** (since every generated file is `.tsx`/`.ts` with strict types).
+3. **An `app/` or `src/app/` directory exists** (the skill targets App Router only; Pages Router is out of scope).
+4. **For Modes A/B only (asked in Phase 1.5), `tailwindcss` is in deps** and either `tailwind.config.ts` or `tailwind.config.js` exists at repo root.
+
+If all checks pass, announce **"Project preflight OK — proceeding to Phase 1."** and move on.
+
+If any check fails, present this block to the user and wait for a decision:
+
+```markdown
+## Project preflight — this directory isn't ready
+
+Missing:
+- [ ] package.json with `next` dependency
+- [ ] tsconfig.json
+- [ ] app/ or src/app/ directory
+- [ ] (Modes A/B) tailwindcss dependency + tailwind.config.*
+
+The skill generates `.tsx` files under `app/`, runs `shadcn add`, and calls
+`tsc --noEmit` + `eslint`. None of that works without a Next.js project.
+
+How would you like to proceed?
+
+**A. Scaffold a new Next.js project in this directory (recommended).**
+   I'll run:
+   ```
+   npx create-next-app@latest . \
+     --typescript --tailwind --app --src-dir --eslint \
+     --import-alias "@/*" --no-install
+   ```
+   Then `pnpm install` / `npm install` (whichever your lockfile indicates — I'll
+   detect it; if no lockfile, I'll ask).
+   **Note:** `create-next-app` refuses to run in a non-empty directory. If there
+   are leftover files (a stray `.next/`, old `node_modules/`, etc.), I'll flag
+   them and ask whether to clean before scaffolding.
+
+**B. Point me at an existing Next.js project directory.**
+   Give me the relative path; I'll `cd` there and re-run preflight.
+
+**C. Abort.**
+   I'll stop here without touching the filesystem.
+```
+
+**Rules for Phase 0:**
+
+- **Never scaffold without approval.** The user must pick A, B, or C explicitly.
+- **Never delete files to make room for `create-next-app`.** If the directory isn't empty enough, list the offending files and ask what to do — never `rm` autonomously. The user's stray `.next/` might be leftover or might be something they're debugging.
+- **Detect package manager** from lockfile: `pnpm-lock.yaml` → pnpm, `yarn.lock` → yarn, `bun.lock`/`bun.lockb` → bun, `package-lock.json` → npm. If no lockfile, ask before running install.
+- **After scaffolding, re-run the preflight checks.** Confirm everything's green before announcing "proceeding to Phase 1."
+- **Do not make this check cacheable.** Run it on every invocation — users might be testing in different directories, or the state may have changed since the last run.
+
+If the user chose **C** (abort), print a single-line summary of what was missing and exit cleanly. Do not fetch the design. Do not spawn subagents.
 
 ### Phase 1 — Ingest
 
@@ -169,11 +227,13 @@ Full verification steps: see `references/verify.md`.
 1. **Never hand-write a shadcn primitive.** Emit the `shadcn add` command; let the user run it.
 2. **Never inline hex colors in JSX.** Use Tailwind tokens or CSS variables.
 3. **Never use `any`.** `unknown` + type guard, or a proper type.
-4. **Never skip the Phase 1.5 style-mode checkpoint.** The question is asked on every invocation — no defaults, no inference from previous runs, no shortcutting even when vibe-stack-rules is active. The user explicitly chooses A/B/C every time.
-5. **Never skip the Phase 3 approval checkpoint.** The user must see the plan before files are written.
-6. **Never mix adapter rules into vanilla mode.** If `adapter = "none"`, do not add `_components/` folders, Suspense boundaries, `ROUTES`, or Server Action stubs unless the source design explicitly demands them.
-7. **Never write imports that resolve to nothing.** Dependency order in Phase 4 is strict.
-8. **Never keep source CSS class names when the user chose Mode A or B.** Replacing every className with the Style Mapper's utility output is the whole point of those modes. Importing the source CSS file next to the JSX is a silent failure mode — do not let it happen.
+4. **Never skip Phase 0 preflight.** If `package.json` + Next.js are missing, do not proceed to Phase 1 without either scaffolding (user-approved) or the user explicitly pointing at an existing project directory.
+5. **Never scaffold a project autonomously.** Phase 0 must present the A/B/C question and wait for a choice. Do not `create-next-app` or `rm` anything without approval.
+6. **Never skip the Phase 1.5 style-mode checkpoint.** The question is asked on every invocation — no defaults, no inference from previous runs, no shortcutting even when vibe-stack-rules is active. The user explicitly chooses A/B/C every time.
+7. **Never skip the Phase 3 approval checkpoint.** The user must see the plan before files are written.
+8. **Never mix adapter rules into vanilla mode.** If `adapter = "none"`, do not add `_components/` folders, Suspense boundaries, `ROUTES`, or Server Action stubs unless the source design explicitly demands them.
+9. **Never write imports that resolve to nothing.** Dependency order in Phase 4 is strict.
+10. **Never keep source CSS class names when the user chose Mode A or B.** Replacing every className with the Style Mapper's utility output is the whole point of those modes. Importing the source CSS file next to the JSX is a silent failure mode — do not let it happen.
 
 ---
 
