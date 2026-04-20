@@ -25,9 +25,16 @@ The fix: a **lean `CLAUDE.md`** at your repo root that describes your project, p
 ```
 vibe-stack-rules/
 ├── README.md                    ← you are here
+├── USAGE.md                     ← end-to-end walkthrough for the skill
 ├── LICENSE                      ← MIT
 ├── .gitignore
-└── template/                    ← the files you install into your project
+├── .claude-plugin/
+│   └── marketplace.json         ← makes this repo an installable Claude Code marketplace
+├── plugins/                     ← plugin distribution (for /plugin install)
+│   └── claude-design-to-nextjs/
+│       ├── .claude-plugin/plugin.json
+│       └── skills/claude-design-to-nextjs/   ← same content as template/.claude/skills/ below
+└── template/                    ← the files you install into your project via degit
     ├── CLAUDE.md                ← lean project-brain template
     ├── stack/
     │   ├── 00-foundations.md    ← reading instructions, versions, principles, project structure
@@ -41,6 +48,8 @@ vibe-stack-rules/
                 ├── SKILL.md
                 └── references/            ← per-phase subagent prompts + stack adapter
 ```
+
+> The skill appears in **two** locations on purpose: `plugins/claude-design-to-nextjs/skills/` for `/plugin install`, and `template/.claude/skills/` for `degit` installs. Keep them in sync when editing — a quick `rsync -a plugins/claude-design-to-nextjs/skills/claude-design-to-nextjs/ template/.claude/skills/claude-design-to-nextjs/` after a change is enough.
 
 Everything inside `template/` is what lands in your project. The rest is repo metadata.
 
@@ -210,16 +219,22 @@ The raw output isn't TSX, isn't Tailwind, and definitely isn't following any of 
 
 **What it does not do:** run `shadcn add` on your behalf (emits the command; you run it), infer business logic (stubs are marked `// TODO`), or edit existing pages (writes new files only).
 
-### Installing just the skill
+### Installing the skill
 
-Claude Code auto-discovers skills from two locations:
+You have four options. Pick one.
 
-- **Project-local:** `.claude/skills/<skill-name>/` — shared with anyone who clones the repo.
-- **User-global:** `~/.claude/skills/<skill-name>/` — available in every project on your machine.
+**Option 1 — via the Claude Code plugin marketplace (easiest, versioned updates)**
 
-Pick whichever scope fits. All three options below work without any manual linking — Claude Code picks them up at session start.
+Inside Claude Code:
 
-**Option 1 — with the full vibe-stack-rules bundle (recommended)**
+```
+/plugin marketplace add imfaisii/vibe-stack-rules
+/plugin install claude-design-to-nextjs@vibe-stack-rules
+```
+
+Claude Code fetches this repo's `.claude-plugin/marketplace.json`, installs the plugin, and the skill becomes available across all your projects. Future updates are a single `/plugin update` away.
+
+**Option 2 — full vibe-stack-rules bundle via `degit` (recommended for new Next.js projects)**
 
 Gets you the stack rules *and* the skill, so the adapter auto-activates:
 
@@ -227,7 +242,7 @@ Gets you the stack rules *and* the skill, so the adapter auto-activates:
 npx degit imfaisii/vibe-stack-rules/template .
 ```
 
-**Option 2 — skill only, project-scoped**
+**Option 3 — skill only via `degit`, project-scoped**
 
 Skips the stack rules; the skill will run in vanilla mode:
 
@@ -235,7 +250,7 @@ Skips the stack rules; the skill will run in vanilla mode:
 npx degit imfaisii/vibe-stack-rules/template/.claude/skills/claude-design-to-nextjs .claude/skills/claude-design-to-nextjs
 ```
 
-**Option 3 — skill only, user-global**
+**Option 4 — skill only via `degit`, user-global**
 
 Installs for every project on your machine:
 

@@ -1,0 +1,28 @@
+{
+  "$schema": "https://code.claude.com/schemas/plugin.json",
+  "name": "claude-design-to-nextjs",
+  "version": "0.1.0",
+  "description": "Converts a Claude Design bundle into production Next.js App Router code (TypeScript + Tailwind + shadcn/ui) via a 5-phase pipeline with parallel analysis agents and a mandatory approval checkpoint. Automatically layers the vibe-stack-rules contract when stack/*.md is detected at repo root.",
+  "author": {
+    "name": "imfaisii",
+    "url": "https://github.com/imfaisii"
+  },
+  "homepage": "https://github.com/imfaisii/vibe-stack-rules",
+  "repository": "https://github.com/imfaisii/vibe-stack-rules",
+  "license": "MIT",
+  "keywords": [
+    "claude-design",
+    "nextjs",
+    "app-router",
+    "tailwind",
+    "shadcn",
+    "typescript",
+    "frontend",
+    "design-to-code",
+    "rsc",
+    "server-actions"
+  ],
+  "components": {
+    "skills": ["skills/"]
+  }
+}

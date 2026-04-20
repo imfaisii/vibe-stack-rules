@@ -1,0 +1,36 @@
+{
+  "$schema": "https://code.claude.com/schemas/marketplace.json",
+  "name": "vibe-stack-rules",
+  "description": "Opinionated engineering rules and skills for Next.js + Supabase + shadcn/ui + Zustand projects.",
+  "owner": {
+    "name": "imfaisii",
+    "url": "https://github.com/imfaisii"
+  },
+  "plugins": [
+    {
+      "name": "claude-design-to-nextjs",
+      "source": "./plugins/claude-design-to-nextjs",
+      "description": "Converts a Claude Design bundle (HTML + CSS + components, fetched from api.anthropic.com/v1/design/) into production-ready Next.js App Router code — TypeScript, Tailwind, and shadcn/ui — through a 5-phase pipeline with parallel analysis agents, a mandatory approval checkpoint, and a verification pass. Automatically layers the vibe-stack-rules contract when stack/*.md is detected at repo root.",
+      "version": "0.1.0",
+      "author": {
+        "name": "imfaisii",
+        "url": "https://github.com/imfaisii"
+      },
+      "homepage": "https://github.com/imfaisii/vibe-stack-rules",
+      "repository": "https://github.com/imfaisii/vibe-stack-rules",
+      "license": "MIT",
+      "keywords": [
+        "claude-design",
+        "nextjs",
+        "app-router",
+        "tailwind",
+        "shadcn",
+        "typescript",
+        "frontend",
+        "design-to-code",
+        "rsc",
+        "server-actions"
+      ]
+    }
+  ]
+}

@@ -28,27 +28,41 @@ Before the first run, make sure your project has:
   ```bash
   npx shadcn@latest init
   ```
-- **The skill installed.** Claude Code auto-discovers skills from `.claude/skills/` (project-local) or `~/.claude/skills/` (user-global). Pick one:
+- **The skill installed.** Four ways to install; pick one:
 
-  Project-scoped:
-  ```bash
-  npx degit imfaisii/vibe-stack-rules/template/.claude/skills/claude-design-to-nextjs .claude/skills/claude-design-to-nextjs
-  ```
+  1. **Plugin marketplace (easiest)** — run these inside Claude Code:
+     ```
+     /plugin marketplace add imfaisii/vibe-stack-rules
+     /plugin install claude-design-to-nextjs@vibe-stack-rules
+     ```
+     Future updates are a single `/plugin update` away.
 
-  User-global (available in every project on your machine):
-  ```bash
-  npx degit imfaisii/vibe-stack-rules/template/.claude/skills/claude-design-to-nextjs ~/.claude/skills/claude-design-to-nextjs
-  ```
+  2. **Full bundle via `degit`** — stack rules *and* skill together; adapter auto-activates:
+     ```bash
+     npx degit imfaisii/vibe-stack-rules/template .
+     ```
 
-- **`vibe-stack-rules` installed** (optional but recommended — unlocks the adapter layer). One command installs the stack rules *and* the skill together:
+  3. **Skill only, project-scoped** — drops the skill into `.claude/skills/` in the current repo:
+     ```bash
+     npx degit imfaisii/vibe-stack-rules/template/.claude/skills/claude-design-to-nextjs .claude/skills/claude-design-to-nextjs
+     ```
+
+  4. **Skill only, user-global** — available in every project on your machine:
+     ```bash
+     npx degit imfaisii/vibe-stack-rules/template/.claude/skills/claude-design-to-nextjs ~/.claude/skills/claude-design-to-nextjs
+     ```
+
+- **`vibe-stack-rules` stack files installed** (optional — unlocks the adapter layer). Option 2 above already includes this. If you went with Options 1, 3, or 4, add the stack rules separately:
   ```bash
-  npx degit imfaisii/vibe-stack-rules/template .
+  npx degit imfaisii/vibe-stack-rules/template/stack stack
   ```
   Once `stack/*.md` is present at repo root, the skill automatically layers in Suspense + skeleton siblings + non-async `page.tsx` + Server Action stubs + `ROUTES` constants + `cn()` composition. Without it, the skill emits clean vanilla Next.js code.
 
-Verify either install worked:
+Verify the install worked:
 
 ```bash
+# Plugin install: managed by Claude Code — no filesystem path to check
+# degit installs:
 ls .claude/skills/claude-design-to-nextjs/SKILL.md  # project-scoped
 # or
 ls ~/.claude/skills/claude-design-to-nextjs/SKILL.md  # user-global
