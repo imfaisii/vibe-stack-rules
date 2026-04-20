@@ -25,6 +25,6 @@ pnpm-debug.log*
 .env.*
 !.env.example
 
-# Claude Code local overrides
+# Claude Code local overrides (root-only — template/.claude/ is the shipped skill and must be tracked)
 CLAUDE.local.md
-.claude/
+/.claude/

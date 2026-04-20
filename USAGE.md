@@ -28,17 +28,33 @@ Before the first run, make sure your project has:
   ```bash
   npx shadcn@latest init
   ```
-- **`vibe-stack-rules` installed** (optional but recommended — unlocks the adapter layer):
+- **The skill installed.** Claude Code auto-discovers skills from `.claude/skills/` (project-local) or `~/.claude/skills/` (user-global). Pick one:
+
+  Project-scoped:
+  ```bash
+  npx degit imfaisii/vibe-stack-rules/template/.claude/skills/claude-design-to-nextjs .claude/skills/claude-design-to-nextjs
+  ```
+
+  User-global (available in every project on your machine):
+  ```bash
+  npx degit imfaisii/vibe-stack-rules/template/.claude/skills/claude-design-to-nextjs ~/.claude/skills/claude-design-to-nextjs
+  ```
+
+- **`vibe-stack-rules` installed** (optional but recommended — unlocks the adapter layer). One command installs the stack rules *and* the skill together:
   ```bash
   npx degit imfaisii/vibe-stack-rules/template .
   ```
   Once `stack/*.md` is present at repo root, the skill automatically layers in Suspense + skeleton siblings + non-async `page.tsx` + Server Action stubs + `ROUTES` constants + `cn()` composition. Without it, the skill emits clean vanilla Next.js code.
 
-Also install the skill itself — it ships inside `template/skills/`, so the same `degit` command above brings it along. Verify:
+Verify either install worked:
 
 ```bash
-ls skills/claude-design-to-nextjs/SKILL.md
+ls .claude/skills/claude-design-to-nextjs/SKILL.md  # project-scoped
+# or
+ls ~/.claude/skills/claude-design-to-nextjs/SKILL.md  # user-global
 ```
+
+Inside Claude Code, running `/memory` lists loaded skills — the `claude-design-to-nextjs` entry confirms discovery.
 
 ---
 
@@ -229,7 +245,7 @@ Total wall time: typically 2-4 minutes for a landing-page-sized design. Most of 
 
 ## Feedback
 
-The skill lives in [template/skills/claude-design-to-nextjs/](template/skills/claude-design-to-nextjs/). If a rule is actively blocking you, open an issue with:
+The skill lives in [template/.claude/skills/claude-design-to-nextjs/](template/.claude/skills/claude-design-to-nextjs/). If a rule is actively blocking you, open an issue with:
 
 1. The Claude Design URL (or a minimal reproducer).
 2. What the skill emitted.

@@ -35,10 +35,11 @@ vibe-stack-rules/
     │   ├── 20-supabase.md       ← 3 clients, middleware/proxy, auth gate, the 6 traps
     │   ├── 30-client.md         ← Zustand store factory + shadcn composition
     │   └── 90-discipline.md     ← redundancy rules, TS rules, LLM checklist, anti-patterns
-    └── skills/
-        └── claude-design-to-nextjs/   ← convert Claude Design bundles → Next.js + TSX + Tailwind + shadcn
-            ├── SKILL.md
-            └── references/            ← per-phase subagent prompts + stack adapter
+    └── .claude/
+        └── skills/
+            └── claude-design-to-nextjs/   ← convert Claude Design bundles → Next.js + TSX + Tailwind + shadcn
+                ├── SKILL.md
+                └── references/            ← per-phase subagent prompts + stack adapter
 ```
 
 Everything inside `template/` is what lands in your project. The rest is repo metadata.
@@ -54,8 +55,9 @@ your-next-app/
 │   ├── 20-supabase.md
 │   ├── 30-client.md
 │   └── 90-discipline.md
-├── skills/
-│   └── claude-design-to-nextjs/ ← triggers when you paste a Claude Design command
+├── .claude/
+│   └── skills/
+│       └── claude-design-to-nextjs/  ← triggers when you paste a Claude Design command
 ├── app/                         ← your actual Next.js app
 ├── lib/
 └── ...
@@ -196,7 +198,7 @@ https://api.anthropic.com/v1/design/h/<id>?open_file=<file>
 Implement: <file>
 ```
 
-The raw output isn't TSX, isn't Tailwind, and definitely isn't following any of the rules in `stack/*.md`. `template/skills/claude-design-to-nextjs/` closes that gap.
+The raw output isn't TSX, isn't Tailwind, and definitely isn't following any of the rules in `stack/*.md`. `template/.claude/skills/claude-design-to-nextjs/` closes that gap.
 
 **What it does:**
 
@@ -208,7 +210,40 @@ The raw output isn't TSX, isn't Tailwind, and definitely isn't following any of 
 
 **What it does not do:** run `shadcn add` on your behalf (emits the command; you run it), infer business logic (stubs are marked `// TODO`), or edit existing pages (writes new files only).
 
-The skill ships inside `template/` and lands in your project via the same `degit` install as the rule files — no extra step.
+### Installing just the skill
+
+Claude Code auto-discovers skills from two locations:
+
+- **Project-local:** `.claude/skills/<skill-name>/` — shared with anyone who clones the repo.
+- **User-global:** `~/.claude/skills/<skill-name>/` — available in every project on your machine.
+
+Pick whichever scope fits. All three options below work without any manual linking — Claude Code picks them up at session start.
+
+**Option 1 — with the full vibe-stack-rules bundle (recommended)**
+
+Gets you the stack rules *and* the skill, so the adapter auto-activates:
+
+```bash
+npx degit imfaisii/vibe-stack-rules/template .
+```
+
+**Option 2 — skill only, project-scoped**
+
+Skips the stack rules; the skill will run in vanilla mode:
+
+```bash
+npx degit imfaisii/vibe-stack-rules/template/.claude/skills/claude-design-to-nextjs .claude/skills/claude-design-to-nextjs
+```
+
+**Option 3 — skill only, user-global**
+
+Installs for every project on your machine:
+
+```bash
+npx degit imfaisii/vibe-stack-rules/template/.claude/skills/claude-design-to-nextjs ~/.claude/skills/claude-design-to-nextjs
+```
+
+Verify it loaded inside Claude Code with `/memory` — the skill's frontmatter shows up under the available-skills list.
 
 ### Quick start
 
