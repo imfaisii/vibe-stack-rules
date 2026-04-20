@@ -4,7 +4,6 @@ Thumbs.db
 desktop.ini
 
 # Editor / IDE
-.vscode/
 .idea/
 *.swp
 *.swo
@@ -28,3 +27,7 @@ pnpm-debug.log*
 # Claude Code local overrides (root-only — template/.claude/ is the shipped skill and must be tracked)
 CLAUDE.local.md
 /.claude/
+branch_structure.json
+temp_auto_push.bat
+temp_interactive_push.bat
+.gitignore
