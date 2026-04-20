@@ -1,7 +1,7 @@
 {
   "$schema": "https://code.claude.com/schemas/plugin.json",
   "name": "claude-design-to-nextjs",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Converts a Claude Design bundle into production Next.js App Router code (TypeScript + Tailwind + shadcn/ui) via a 5-phase pipeline with parallel analysis agents and a mandatory approval checkpoint. Automatically layers the vibe-stack-rules contract when stack/*.md is detected at repo root.",
   "author": {
     "name": "imfaisii",
