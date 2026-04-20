@@ -25,6 +25,10 @@ Format the plan as a single markdown block with this structure:
 ```markdown
 ## Conversion plan for <target file>
 
+### Style mode (from Phase 1.5)
+**Mode A — Full Tailwind conversion.** Every source className will be replaced with mapped Tailwind utilities. No CSS files will be copied from the bundle. `globals.css` will only contain design tokens.
+_(Swap for B or C language if the user picked a different mode.)_
+
 ### shadcn primitives to install
 ```bash
 npx shadcn@latest add <space-separated list>
@@ -93,15 +97,104 @@ Files are written in this order — never break the sequence:
 
 **If any file depends on something not yet written, move it later.** Never emit broken imports.
 
-### 4.2 Universal generation rules (apply in all modes)
+### 4.2 Applying the chosen style mode (MANDATORY — this is where the bug hides)
+
+The style mode was chosen in Phase 1.5 (A / B / C). Every JSX file the generator writes must honor it. **The Style Mapper's `utilityMap` is authoritative input for Modes A and B.** Skipping it means the bundle's original CSS class names leak into the JSX with no Tailwind conversion happening — the exact failure we engineered Phase 1.5 to prevent.
+
+**Mode A — Full Tailwind conversion:**
+
+For each element in the source HTML, look up its selector in `utilityMap` and replace the className with the mapped utilities.
+
+```tsx
+// SOURCE HTML (from Claude Design bundle)
+// <button class="btn-primary">Sign up</button>
+//
+// utilityMap entry: { "selector": ".btn-primary", "tailwind": "inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90" }
+
+// ✅ What the generator MUST emit
+import { Button } from "@/components/ui/button";
+<Button>Sign up</Button>
+// or if shadcn primitive doesn't apply:
+<button className={cn("inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90")}>Sign up</button>
+
+// ❌ What the generator MUST NOT emit (the common failure mode)
+import "./styles.css";                                   // <-- importing source CSS
+<button className="btn-primary">Sign up</button>         // <-- original class kept, no Tailwind
+```
+
+**Rules for Mode A:**
+- Do NOT copy any `*.css` file from the bundle into the project, except tokens → `globals.css` (CSS variables only) and `tailwind.config.ts` (theme extensions).
+- Do NOT emit `import "./<anything>.css"` in any generated component.
+- Every single className in the output JSX must either be (a) a Tailwind utility, (b) a shadcn variant prop, or (c) a `cn()` composition of Tailwind utilities. No exceptions.
+- If the Style Mapper's `warnings` array flagged a rule that can't be expressed in Tailwind, surface it during Phase 3 (plan) with a recommendation to switch to Mode B for that component. Don't silently fall back to CSS.
+
+**Mode B — Hybrid:**
+
+Same Tailwind-conversion behavior as Mode A, but rules the Style Mapper marked as "CSS-required" land in a `*.module.css` file co-located with the component.
+
+```tsx
+// components/common/animated-badge.tsx
+import styles from "./animated-badge.module.css";
+import { cn } from "@/lib/utils";
+
+export function AnimatedBadge({ className }: { className?: string }) {
+  return (
+    <span className={cn("rounded-full bg-primary px-2 py-0.5 text-xs", styles.pulse, className)}>
+      NEW
+    </span>
+  );
+}
+```
+
+```css
+/* components/common/animated-badge.module.css */
+.pulse {
+  animation: pulse 2s ease-in-out infinite;
+}
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+```
+
+Rules:
+- CSS modules are ONLY for rules Tailwind can't express — keyframes, container queries, cascade layers, complex combinators.
+- Everything else stays in Tailwind utilities, same as Mode A.
+- One `.module.css` file per component that needs it. Never a shared stylesheet.
+
+**Mode C — Preserve CSS files:**
+
+No Tailwind conversion. The source CSS files are copied verbatim into a sensible location (typically `styles/` at the project root or alongside the component) and imported once from the root layout or component.
+
+```tsx
+// components/common/hero.tsx
+import "@/styles/hero.css";   // copied from the Claude Design bundle
+<section className="hero-section">...</section>
+```
+
+Rules:
+- Preserve original class names exactly as they appear in the bundle.
+- Do NOT run the Style Mapper (it has nothing to contribute in Mode C).
+- Generator emits `utilityMap` is empty — that's correct behavior for this mode.
+- No `cn()` calls to "Tailwind-ify" anything; the whole point is to keep the source CSS.
+
+**Mode decision → generator behavior table:**
+
+| Mode | Tailwind utilities in JSX? | Source CSS files copied? | `*.module.css` emitted? | CSS variables in globals.css? |
+|---|---|---|---|---|
+| A — Full Tailwind | Yes, applied from `utilityMap` | No | No | Yes (tokens only) |
+| B — Hybrid | Yes, applied from `utilityMap` | No | Yes, per component that needs it | Yes (tokens only) |
+| C — Preserve CSS | No, original classes kept | Yes, copied to `styles/` | No | Only if bundle has them |
+
+### 4.3 Universal generation rules (apply in all modes)
 
 | Rule | Detail |
 |---|---|
 | **TypeScript** | `.tsx` for components, `.ts` for utilities. Strict mode assumed. No `any`. |
 | **Props** | Exported `type <Name>Props = { ... }` above the component. Accept `className?: string` for composition. |
-| **className composition** | Always `cn(...)` from `@/lib/utils`. Never string concat. |
+| **className composition** | Always `cn(...)` from `@/lib/utils` when combining classes (Modes A and B). Never string concat. |
 | **No inline styles** | `style={{ ... }}` is banned except for truly dynamic values (e.g. a percentage width driven by data). |
-| **No hex in JSX** | Use Tailwind tokens (`bg-primary`, `text-muted-foreground`). |
+| **No hex in JSX** | Use Tailwind tokens (`bg-primary`, `text-muted-foreground`) in Modes A/B. |
 | **Imports** | `@/` path alias for internal. `import type` for type-only imports. |
 | **Server/client split** | Default to server. Add `"use client"` only when the component uses `useState`, `useEffect`, event handlers, or browser APIs. |
 | **Accessibility** | `aria-*` preserved from the source HTML. `<button>` for actions, `<a>` (or `<Link>`) for navigation. `alt=""` on decorative images. |

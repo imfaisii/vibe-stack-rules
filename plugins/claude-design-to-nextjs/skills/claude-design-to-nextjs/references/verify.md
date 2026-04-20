@@ -61,6 +61,24 @@ Grep the diff for these and flag any hits:
 | `className="..."\+...` or template literals for classes | Must go through `cn()`. |
 | `import .* from ['"]@supabase/auth-helpers` | Deprecated — use `@supabase/ssr`. |
 | `href="/[a-z].*"` in adapter mode | Hard-coded route string — use `ROUTES.*`. |
+| `import ['"].*\.css['"]` in a `.tsx` file | Mode A forbids source CSS imports. Mode B allows only `*.module.css`. Mode C permits plain `.css` imports. |
+
+### Style-mode conformance grep (run based on Phase 1.5 decision)
+
+```bash
+# Mode A: no .css imports anywhere except app/globals.css
+grep -rnE "import\s+['\"].*\.css['\"]" app/ components/ 2>/dev/null \
+  | grep -v "globals.css" \
+  && echo "FAIL: Mode A should have no CSS imports other than globals.css"
+
+# Modes A + B: flag source CSS class names that look untranslated.
+# Heuristic: kebab-case classNames that are not recognized Tailwind utilities.
+grep -rnE 'className=["\x27][a-z]+-[a-z]+["\x27]' app/ components/ 2>/dev/null \
+  | grep -vE '(flex-|grid-|gap-|px-|py-|text-|bg-|border-|rounded-|shadow-|w-|h-|min-|max-|space-|items-|justify-)' \
+  && echo "WARN: possible untranslated source class names in JSX — spot-check these"
+```
+
+The second grep is a warning-level signal, not a hard fail — it can false-positive on legitimate domain class names (e.g., `data-grid`, `user-avatar`) the extractor kept. The user eyeballs the output.
 
 ---
 

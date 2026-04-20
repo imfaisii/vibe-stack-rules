@@ -45,11 +45,12 @@ Announce the adapter choice to the user in one sentence before Phase 1 starts.
 ## The pipeline (topology B: parallel analyze, sequential generate)
 
 ```
-1. INGEST         (1 agent, sequential)
-2. ANALYZE        (3 subagents in parallel — Task tool with subagent_type=general-purpose)
-3. SYNTHESIZE     (1 agent, waits for user approval of the plan)
-4. GENERATE       (1 agent, sequential — shared components first, then routes)
-5. VERIFY         (1 agent — tsc + eslint + pre-submit checklist)
+1.   INGEST             (1 agent, sequential)
+1.5. STYLE MODE         (mandatory checkpoint — ask the user every run, no defaults)
+2.   ANALYZE            (3 subagents in parallel — Task tool with subagent_type=general-purpose)
+3.   SYNTHESIZE         (1 agent, waits for user approval of the plan)
+4.   GENERATE           (1 agent, sequential — shared components first, then routes)
+5.   VERIFY             (1 agent — tsc + eslint + pre-submit checklist)
 ```
 
 All heavy per-phase guidance lives in `references/`. Load each file on-demand per phase — do not preload.
@@ -67,7 +68,47 @@ All heavy per-phase guidance lives in `references/`. Load each file on-demand pe
    - asset list (images/SVG/fonts)
    - tokens/variables from the README or CSS `:root`
 
-**Do not write any files yet.** Pass the inventory into Phase 2.
+**Do not write any files yet.** Pass the inventory into Phase 1.5.
+
+### Phase 1.5 — Style mode checkpoint (MANDATORY, ASK EVERY RUN)
+
+**This step is not optional and not cacheable.** Ask the user this question on every single invocation, even if you think you know their answer, even if they answered the same way last time. Claude Design bundles ship static CSS files — without this explicit question, Claude tends to keep the CSS files alongside the JSX (which defeats the point of using this skill).
+
+Present exactly this question block to the user and stop for their answer:
+
+```markdown
+## Style conversion mode
+
+Claude Design ships static CSS. How should the generator handle styles?
+
+**A. Full Tailwind conversion (recommended).**
+   Every CSS class from the bundle is mapped to Tailwind utilities and
+   applied directly in the JSX. The CSS files are NOT copied into the
+   project. `globals.css` only gets CSS variables / design tokens +
+   anything Tailwind genuinely can't express (rare).
+
+**B. Hybrid.**
+   Simple rules (padding, margin, color, typography) → Tailwind utilities.
+   Complex rules (@keyframes, container queries, cascade layers, complex
+   pseudo-selectors) stay in a CSS module co-located with the component.
+   Use this if the design uses advanced CSS features.
+
+**C. Preserve CSS files.**
+   The original CSS files are copied alongside the components, class
+   names are kept as-is in the JSX. No Tailwind conversion. Use this
+   only when you specifically want to retain the source stylesheet
+   structure.
+
+Which mode? (A / B / C)
+```
+
+Once the user answers, record the mode in an inline variable for the remaining phases:
+
+- **Mode A** → Style Mapper runs in full-conversion mode. Generator replaces every source className with the mapped Tailwind utilities. No CSS file imports in JSX.
+- **Mode B** → Style Mapper separates utility-convertible rules from CSS-required rules. Generator applies Tailwind utilities AND emits a `.module.css` file alongside each component that needs the complex rules.
+- **Mode C** → Style Mapper is skipped entirely (no Tailwind work needed). Generator copies CSS files into `styles/` or a component-adjacent location and keeps the original classNames in JSX.
+
+**Never skip this step. Never assume mode A just because vibe-stack-rules is active.** The adapter enforces that `globals.css` contains only CSS variables, but the *source* of the classNames (Tailwind vs CSS module vs plain CSS import) is the user's call — ask them.
 
 ### Phase 2 — Analyze (parallel)
 
@@ -128,9 +169,11 @@ Full verification steps: see `references/verify.md`.
 1. **Never hand-write a shadcn primitive.** Emit the `shadcn add` command; let the user run it.
 2. **Never inline hex colors in JSX.** Use Tailwind tokens or CSS variables.
 3. **Never use `any`.** `unknown` + type guard, or a proper type.
-4. **Never skip the Phase 3 approval checkpoint.** The user must see the plan before files are written.
-5. **Never mix adapter rules into vanilla mode.** If `adapter = "none"`, do not add `_components/` folders, Suspense boundaries, `ROUTES`, or Server Action stubs unless the source design explicitly demands them.
-6. **Never write imports that resolve to nothing.** Dependency order in Phase 4 is strict.
+4. **Never skip the Phase 1.5 style-mode checkpoint.** The question is asked on every invocation — no defaults, no inference from previous runs, no shortcutting even when vibe-stack-rules is active. The user explicitly chooses A/B/C every time.
+5. **Never skip the Phase 3 approval checkpoint.** The user must see the plan before files are written.
+6. **Never mix adapter rules into vanilla mode.** If `adapter = "none"`, do not add `_components/` folders, Suspense boundaries, `ROUTES`, or Server Action stubs unless the source design explicitly demands them.
+7. **Never write imports that resolve to nothing.** Dependency order in Phase 4 is strict.
+8. **Never keep source CSS class names when the user chose Mode A or B.** Replacing every className with the Style Mapper's utility output is the whole point of those modes. Importing the source CSS file next to the JSX is a silent failure mode — do not let it happen.
 
 ---
 
